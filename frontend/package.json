@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve -s dist"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -15,7 +16,8 @@
     "react-router-dom": "^7.3.0",
     "axios": "^1.7.7",
     "qrcode": "^1.5.4",
-    "tailwindcss": "^3.4.13"
+    "tailwindcss": "^3.4.13",
+    "serve": "^14.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
