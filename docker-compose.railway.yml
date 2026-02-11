@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: live-sales-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/shoplive}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173}
+      - PORT=3001
+    depends_on:
+      - postgres
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - live-sales-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: live-sales-frontend
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3001}
+    depends_on:
+      - backend
+    networks:
+      - live-sales-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: live-sales-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=shoplive
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - live-sales-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  live-sales-network:
+    driver: bridge
+
+volumes:
+  uploads:
+  postgres_data:
