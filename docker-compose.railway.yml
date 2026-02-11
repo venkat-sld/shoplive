@@ -1,6 +1,26 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: live-sales-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=shoplive
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - live-sales-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -9,14 +29,17 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/shoplive}
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173}
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/shoplive
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://localhost:3000}
       - PORT=3001
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
+      - ./backend:/app
+      - /app/node_modules
       - uploads:/app/uploads
     networks:
       - live-sales-network
@@ -36,30 +59,15 @@ services:
     ports:
       - "80:80"
     environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:3001}
+      - VITE_API_URL=http://localhost:3001
     depends_on:
       - backend
-    networks:
-      - live-sales-network
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: live-sales-postgres
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=shoplive
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./frontend:/app
+      - /app/node_modules
     networks:
       - live-sales-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 networks:
   live-sales-network:
